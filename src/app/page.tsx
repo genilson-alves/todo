@@ -1,3 +1,9 @@
+import ToDo from "./components/ToDo";
+
 export default function Home() {
-  return <></>;
+  return (
+    <>
+      <ToDo></ToDo>
+    </>
+  );
 }
