@@ -89,8 +89,6 @@ const AsideButton = styled.button<{ active: boolean }>`
   }
 `;
 
-// #4484ed;
-
 const TasksContainer = styled.div`
   @media (min-width: 769px) {
     flex: 1;
@@ -154,15 +152,20 @@ const Tasks = styled.div`
   gap: 5px;
 `;
 
-const Task = styled.div`
+const Task = styled.div<{ isSelected: boolean }>`
   display: flex;
   flex-direction: column;
   width: 100%;
   align-items: center;
-  background-color: #98c5f8;
+  background-color: ${(props) => (props.isSelected ? "#669bf1" : "#b6d6fa")};
   padding: 10px;
   border-radius: 10px;
   gap: 5px;
+  cursor: pointer;
+  &:hover {
+    background-color: #6eaef5;
+    transition: 0.3s;
+  }
   @media (min-width: 769px) {
     flex-direction: row;
     gap: 15px;
@@ -223,7 +226,9 @@ function ToDo() {
     pinned: false,
   });
   const [activeButton, setActiveButton] = useState<number>(1);
+  const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
   const [search, setSearch] = useState("");
+  console.log(selectedTasks);
 
   const handleButtonClick = (buttonId: number) => {
     setActiveButton(buttonId);
@@ -233,6 +238,15 @@ function ToDo() {
     setNewTask({ ...newTask, task: event.target.value });
   };
 
+  const handleCheckEvent = (taskId: number) => {
+    const updatedSelectedTasks = selectedTasks.includes(taskId)
+      ? selectedTasks.filter((id) => id !== taskId)
+      : [...selectedTasks, taskId];
+
+    setSelectedTasks(updatedSelectedTasks);
+  };
+
+  // Função para adicionar uma nova tarefa dentro da Array tasks
   const addTask = () => {
     if (newTask.task.trim() !== "") {
       const hour = new Date().toLocaleTimeString("pt-BR", {
@@ -253,14 +267,17 @@ function ToDo() {
     }
   };
 
+  // Função para fixar uma nova tarefa dentro da Array tasks
   const pinTask = (task: TaskType) => {
     setTasks((prev) =>
       prev.map((tasks) =>
+        // Compara os IDs, recebe os valores anteriores das tasks e muda para fixado ou não a task
         tasks.id === task.id ? { ...tasks, pinned: !tasks.pinned } : tasks
       )
     );
   };
 
+  // Função para deletar uma tarefa de dentro da Array tasks
   const deleteTask = (index: number) => {
     const updatedTasks = tasks.filter((_, i) => i !== index);
     setTasks(updatedTasks);
@@ -348,8 +365,12 @@ function ToDo() {
                     (task, index) =>
                       task.pinned && (
                         <Tasks key={index}>
-                          <input type="checkbox"></input>
-                          <Task>
+                          <input
+                            type="checkbox"
+                            checked={selectedTasks.includes(task.id)}
+                            onChange={() => handleCheckEvent(task.id)}
+                          ></input>
+                          <Task isSelected={selectedTasks.includes(task.id)}>
                             <TaskButtons>
                               <TaskOption onClick={() => pinTask(task)}>
                                 <TbPinnedOff></TbPinnedOff>
@@ -387,8 +408,12 @@ function ToDo() {
                     (task, index) =>
                       !task.pinned && (
                         <Tasks key={index}>
-                          <input type="checkbox"></input>
-                          <Task>
+                          <input
+                            type="checkbox"
+                            checked={selectedTasks.includes(task.id)}
+                            onChange={() => handleCheckEvent(task.id)}
+                          ></input>
+                          <Task isSelected={selectedTasks.includes(task.id)}>
                             <TaskButtons>
                               <TaskOption onClick={() => pinTask(task)}>
                                 <TbPinned></TbPinned>
