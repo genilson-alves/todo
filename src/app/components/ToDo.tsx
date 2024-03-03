@@ -5,9 +5,8 @@ import { useState } from "react";
 import styled from "styled-components";
 import { CiSearch } from "react-icons/ci";
 import { FaArrowUp, FaArrowDown } from "react-icons/fa";
-import { TbPin, TbPinned, TbPinnedOff } from "react-icons/tb";
-import { MdDelete } from "react-icons/md";
-import { Calendar } from "react-calendar";
+import { TbPinned, TbPinnedOff } from "react-icons/tb";
+import { MdDelete, MdRestoreFromTrash } from "react-icons/md";
 
 type TaskType = {
   id: number;
@@ -77,11 +76,11 @@ const Aside = styled.aside`
   }
 `;
 
-const AsideButton = styled.button<{ active: boolean }>`
+const AsideButton = styled.button<{ $active: boolean }>`
   border: none;
   padding: 15px;
   font-size: 1rem;
-  background-color: ${(props) => (props.active ? "#98c5f8" : "#f0f6fe")};
+  background-color: ${(props) => (props.$active ? "#98c5f8" : "#f0f6fe")};
   cursor: pointer;
   border-radius: 10px;
   &:hover {
@@ -152,12 +151,12 @@ const Tasks = styled.div`
   gap: 5px;
 `;
 
-const Task = styled.div<{ isSelected: boolean }>`
+const Task = styled.div<{ $isSelected: boolean }>`
   display: flex;
   flex-direction: column;
   width: 100%;
   align-items: center;
-  background-color: ${(props) => (props.isSelected ? "#669bf1" : "#b6d6fa")};
+  background-color: ${(props) => (props.$isSelected ? "#669bf1" : "#b6d6fa")};
   padding: 10px;
   border-radius: 10px;
   gap: 5px;
@@ -227,32 +226,36 @@ function ToDo() {
   });
   const [activeButton, setActiveButton] = useState<number>(1);
   const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
+  const [deletedTasks, setDeletedTasks] = useState<TaskType[]>([]);
   const [search, setSearch] = useState("");
-  console.log(selectedTasks);
 
-  const handleButtonClick = (buttonId: number) => {
-    setActiveButton(buttonId);
+  // Função para mudar o número do botão que o usuário clicar e mostrar se ele quer ver todas as tarefas, as fixadas ou a sua lixeira
+  const handleButtonClick = (activeButtonNumber: number) => {
+    setActiveButton(activeButtonNumber);
   };
 
+  // Função para lidar com o que foi escrito pelo usuário no input de adicionar novas tarefas
   const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    // Adiciona uma nova tarefa
     setNewTask({ ...newTask, task: event.target.value });
   };
 
+  // Função para realizar a seleção de tarefas
   const handleCheckEvent = (taskId: number) => {
     const updatedSelectedTasks = selectedTasks.includes(taskId)
       ? selectedTasks.filter((id) => id !== taskId)
       : [...selectedTasks, taskId];
-
     setSelectedTasks(updatedSelectedTasks);
   };
 
-  // Função para adicionar uma nova tarefa dentro da Array tasks
+  // Função para adicionar uma nova tarefa quando o usuário clicar no botão de adicionar
   const addTask = () => {
+    // Checa se a nova tarefa adicionada pelo usuário tem algum conteúdo, caso não, envia uma alerta
     if (newTask.task.trim() !== "") {
+      // Adiciona o horário atual no qual o usuário adicionou a tarefa
       const hour = new Date().toLocaleTimeString("pt-BR", {
         timeStyle: "short",
       });
-      console.log(hour);
       const taskObject = {
         id: tasks.length + 1,
         hour,
@@ -262,7 +265,7 @@ function ToDo() {
       setTasks((prev) => [...prev, taskObject]);
       setNewTask({ id: 0, hour: "", task: "", pinned: false });
     } else {
-      // Aviso caso o usuário escreva apenas espaços ou não escreva nada
+      // Aviso caso o usuário escreva apenas espaços ou não escreva nada na área de adicionar uma nova tarefa
       alert("Por favor, escreva um valor válido!");
     }
   };
@@ -271,18 +274,29 @@ function ToDo() {
   const pinTask = (task: TaskType) => {
     setTasks((prev) =>
       prev.map((tasks) =>
-        // Compara os IDs, recebe os valores anteriores das tasks e muda para fixado ou não a task
+        // Compara os IDs, recebe os valores anteriores das tasks e muda para fixado ou não
         tasks.id === task.id ? { ...tasks, pinned: !tasks.pinned } : tasks
       )
     );
   };
 
-  // Função para deletar uma tarefa de dentro da Array tasks
+  // Função para excluir uma tarefa de dentro da Array tasks realizando um filtro com o index
   const deleteTask = (index: number) => {
+    const tasksDeleted = tasks[index];
+    setDeletedTasks((prev) => [...prev, tasksDeleted]);
     const updatedTasks = tasks.filter((_, i) => i !== index);
     setTasks(updatedTasks);
   };
 
+  // Função para restaurar as tarefas que foram excluídas
+  const restoreTask = (index: number) => {
+    const restoredTasks = deletedTasks[index];
+    setTasks((prev) => [...prev, restoredTasks]);
+    const updatedDeletedTasks = deletedTasks.filter((_, i) => i !== index);
+    setDeletedTasks(updatedDeletedTasks);
+  };
+
+  // Função para mover a tarefa para cima, realizando a inversão do index, também checa se a tarefa já não é a primeira ou última
   const moveTaskUp = (index: number) => {
     if (index > 0) {
       const updatedTasks = [...tasks];
@@ -294,6 +308,7 @@ function ToDo() {
     }
   };
 
+  // Função para mover a tarefa para baixo, realizando a inversão do index, também checando se a tarefa já não é a primeira ou última
   const moveTaskDown = (index: number) => {
     if (index < tasks.length - 1) {
       const updatedTasks = [...tasks];
@@ -325,19 +340,19 @@ function ToDo() {
       <Main>
         <Aside>
           <AsideButton
-            active={activeButton === 1}
+            $active={activeButton === 1}
             onClick={() => handleButtonClick(1)}
           >
             Todas
           </AsideButton>
           <AsideButton
-            active={activeButton === 2}
+            $active={activeButton === 2}
             onClick={() => handleButtonClick(2)}
           >
             Fixadas
           </AsideButton>
           <AsideButton
-            active={activeButton === 3}
+            $active={activeButton === 3}
             onClick={() => handleButtonClick(3)}
           >
             Lixeira
@@ -350,95 +365,192 @@ function ToDo() {
               placeholder="Adicione uma nova tarefa..."
               value={newTask.task}
               onChange={handleInputChange}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  addTask();
+                }
+              }}
             ></AddTask>
             <AddTaskButton onClick={addTask}>Adicionar</AddTaskButton>
           </AddTaskWrapper>
-          <TaskWrapper>
-            <TaskSectionTitle>Fixadas</TaskSectionTitle>
-            {tasks.some((task) => task.pinned) ? (
-              <TasksWrapper>
-                {tasks
-                  .filter((task) =>
-                    task.task.toLowerCase().includes(search.toLowerCase())
-                  )
-                  .map(
-                    (task, index) =>
-                      task.pinned && (
-                        <Tasks key={index}>
-                          <input
-                            type="checkbox"
-                            checked={selectedTasks.includes(task.id)}
-                            onChange={() => handleCheckEvent(task.id)}
-                          ></input>
-                          <Task isSelected={selectedTasks.includes(task.id)}>
-                            <TaskButtons>
-                              <TaskOption onClick={() => pinTask(task)}>
-                                <TbPinnedOff></TbPinnedOff>
-                              </TaskOption>
-                              <TaskOption onClick={() => deleteTask(index)}>
-                                <MdDelete></MdDelete>
-                              </TaskOption>
-                              <TaskOption onClick={() => moveTaskUp(index)}>
-                                <FaArrowUp></FaArrowUp>
-                              </TaskOption>
-                              <TaskOption onClick={() => moveTaskDown(index)}>
-                                <FaArrowDown></FaArrowDown>
-                              </TaskOption>
-                            </TaskButtons>
-                            <TaskText>{task.task}</TaskText>
-                            <TaskHour>{task.hour}</TaskHour>
-                          </Task>
-                        </Tasks>
+          {activeButton === 1 ? (
+            <>
+              <TaskWrapper>
+                <TaskSectionTitle>Fixadas</TaskSectionTitle>
+                {tasks.some((task) => task.pinned) ? (
+                  <TasksWrapper>
+                    {tasks
+                      .filter((task) =>
+                        task.task.toLowerCase().includes(search.toLowerCase())
                       )
-                  )}
-              </TasksWrapper>
-            ) : (
-              <NoTask>Você não tem nenhuma tarefa fixada no momento!</NoTask>
-            )}
-          </TaskWrapper>
-          <TaskWrapper>
-            <TaskSectionTitle>Todas</TaskSectionTitle>
-            {tasks.some((task) => !task.pinned) ? (
-              <TasksWrapper>
-                {tasks
-                  .filter((task) =>
-                    task.task.toLowerCase().includes(search.toLowerCase())
-                  )
-                  .map(
-                    (task, index) =>
-                      !task.pinned && (
-                        <Tasks key={index}>
-                          <input
-                            type="checkbox"
-                            checked={selectedTasks.includes(task.id)}
-                            onChange={() => handleCheckEvent(task.id)}
-                          ></input>
-                          <Task isSelected={selectedTasks.includes(task.id)}>
-                            <TaskButtons>
-                              <TaskOption onClick={() => pinTask(task)}>
-                                <TbPinned></TbPinned>
-                              </TaskOption>
-                              <TaskOption onClick={() => deleteTask(index)}>
-                                <MdDelete></MdDelete>
-                              </TaskOption>
-                              <TaskOption onClick={() => moveTaskUp(index)}>
-                                <FaArrowUp></FaArrowUp>
-                              </TaskOption>
-                              <TaskOption onClick={() => moveTaskDown(index)}>
-                                <FaArrowDown></FaArrowDown>
-                              </TaskOption>
-                            </TaskButtons>
-                            <TaskText>{task.task}</TaskText>
-                            <TaskHour>{task.hour}</TaskHour>
-                          </Task>
-                        </Tasks>
+                      .map(
+                        (task, index) =>
+                          task.pinned && (
+                            <Tasks key={index}>
+                              <input
+                                type="checkbox"
+                                checked={selectedTasks.includes(task.id)}
+                                onChange={() => handleCheckEvent(task.id)}
+                              ></input>
+                              <Task
+                                $isSelected={selectedTasks.includes(task.id)}
+                              >
+                                <TaskButtons>
+                                  <TaskOption onClick={() => pinTask(task)}>
+                                    <TbPinnedOff></TbPinnedOff>
+                                  </TaskOption>
+                                  <TaskOption onClick={() => deleteTask(index)}>
+                                    <MdDelete></MdDelete>
+                                  </TaskOption>
+                                  <TaskOption onClick={() => moveTaskUp(index)}>
+                                    <FaArrowUp></FaArrowUp>
+                                  </TaskOption>
+                                  <TaskOption
+                                    onClick={() => moveTaskDown(index)}
+                                  >
+                                    <FaArrowDown></FaArrowDown>
+                                  </TaskOption>
+                                </TaskButtons>
+                                <TaskText>{task.task}</TaskText>
+                                <TaskHour>{task.hour}</TaskHour>
+                              </Task>
+                            </Tasks>
+                          )
+                      )}
+                  </TasksWrapper>
+                ) : (
+                  <NoTask>
+                    Você não tem nenhuma tarefa fixada no momento!
+                  </NoTask>
+                )}
+              </TaskWrapper>
+              <TaskWrapper>
+                <TaskSectionTitle>Todas</TaskSectionTitle>
+                {tasks.some((task) => !task.pinned) ? (
+                  <TasksWrapper>
+                    {tasks
+                      .filter((task) =>
+                        task.task.toLowerCase().includes(search.toLowerCase())
                       )
-                  )}
-              </TasksWrapper>
-            ) : (
-              <NoTask>Você não tem nenhuma tarefa no momento!</NoTask>
-            )}
-          </TaskWrapper>
+                      .map(
+                        (task, index) =>
+                          !task.pinned && (
+                            <Tasks key={index}>
+                              <input
+                                type="checkbox"
+                                checked={selectedTasks.includes(task.id)}
+                                onChange={() => handleCheckEvent(task.id)}
+                              ></input>
+                              <Task
+                                $isSelected={selectedTasks.includes(task.id)}
+                              >
+                                <TaskButtons>
+                                  <TaskOption onClick={() => pinTask(task)}>
+                                    <TbPinned></TbPinned>
+                                  </TaskOption>
+                                  <TaskOption onClick={() => deleteTask(index)}>
+                                    <MdDelete></MdDelete>
+                                  </TaskOption>
+                                  <TaskOption onClick={() => moveTaskUp(index)}>
+                                    <FaArrowUp></FaArrowUp>
+                                  </TaskOption>
+                                  <TaskOption
+                                    onClick={() => moveTaskDown(index)}
+                                  >
+                                    <FaArrowDown></FaArrowDown>
+                                  </TaskOption>
+                                </TaskButtons>
+                                <TaskText>{task.task}</TaskText>
+                                <TaskHour>{task.hour}</TaskHour>
+                              </Task>
+                            </Tasks>
+                          )
+                      )}
+                  </TasksWrapper>
+                ) : (
+                  <NoTask>Você não tem nenhuma tarefa no momento!</NoTask>
+                )}
+              </TaskWrapper>
+            </>
+          ) : activeButton === 2 ? (
+            <TaskWrapper>
+              <TaskSectionTitle>Fixadas</TaskSectionTitle>
+              {tasks.some((task) => task.pinned) ? (
+                <TasksWrapper>
+                  {tasks
+                    .filter((task) =>
+                      task.task.toLowerCase().includes(search.toLowerCase())
+                    )
+                    .map(
+                      (task, index) =>
+                        task.pinned && (
+                          <Tasks key={task.id}>
+                            <input
+                              type="checkbox"
+                              checked={selectedTasks.includes(task.id)}
+                              onChange={() => handleCheckEvent(task.id)}
+                            ></input>
+                            <Task $isSelected={selectedTasks.includes(task.id)}>
+                              <TaskButtons>
+                                <TaskOption onClick={() => pinTask(task)}>
+                                  <TbPinnedOff></TbPinnedOff>
+                                </TaskOption>
+                                <TaskOption onClick={() => deleteTask(index)}>
+                                  <MdDelete></MdDelete>
+                                </TaskOption>
+                                <TaskOption onClick={() => moveTaskUp(index)}>
+                                  <FaArrowUp></FaArrowUp>
+                                </TaskOption>
+                                <TaskOption onClick={() => moveTaskDown(index)}>
+                                  <FaArrowDown></FaArrowDown>
+                                </TaskOption>
+                              </TaskButtons>
+                              <TaskText>{task.task}</TaskText>
+                              <TaskHour>{task.hour}</TaskHour>
+                            </Task>
+                          </Tasks>
+                        )
+                    )}
+                </TasksWrapper>
+              ) : (
+                <NoTask>Você não tem nenhuma tarefa fixada no momento!</NoTask>
+              )}
+            </TaskWrapper>
+          ) : (
+            <TaskWrapper>
+              <TaskSectionTitle>Lixeira</TaskSectionTitle>
+              {deletedTasks.length > 0 ? (
+                <TasksWrapper>
+                  {deletedTasks
+                    .filter((task) =>
+                      task.task.toLowerCase().includes(search.toLowerCase())
+                    )
+                    .map((task, index) => (
+                      <Tasks key={task.id}>
+                        <input
+                          type="checkbox"
+                          checked={selectedTasks.includes(task.id)}
+                          onChange={() => handleCheckEvent(task.id)}
+                        ></input>
+                        <Task $isSelected={selectedTasks.includes(task.id)}>
+                          <TaskButtons>
+                            <TaskOption onClick={() => restoreTask(index)}>
+                              <MdRestoreFromTrash></MdRestoreFromTrash>
+                            </TaskOption>
+                          </TaskButtons>
+                          <TaskText>{task.task}</TaskText>
+                          <TaskHour>{task.hour}</TaskHour>
+                        </Task>
+                      </Tasks>
+                    ))}
+                </TasksWrapper>
+              ) : (
+                <NoTask>
+                  Você não tem nenhuma tarefa na lixeira no momento!
+                </NoTask>
+              )}
+            </TaskWrapper>
+          )}
         </TasksContainer>
       </Main>
     </ToDoList>
