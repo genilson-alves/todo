@@ -1,5 +1,6 @@
 "use client";
 
+import { v4 as uuidv4 } from "uuid";
 import Image from "next/image";
 import { useState } from "react";
 import styled from "styled-components";
@@ -126,6 +127,22 @@ const AddTaskButton = styled.button`
   }
 `;
 
+const SelectedTasksOptions = styled.div`
+  margin: 10px;
+  button {
+    background-color: #4484ed;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 15px;
+    margin: 0px 5px;
+    cursor: pointer;
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+`;
+
 const TaskWrapper = styled.div`
   margin: 20px 10px;
 `;
@@ -219,7 +236,7 @@ const NoTask = styled.p`
 function ToDo() {
   const [tasks, setTasks] = useState<TaskType[]>([]);
   const [newTask, setNewTask] = useState({
-    id: 0,
+    id: uuidv4(),
     hour: "",
     task: "",
     pinned: false,
@@ -263,7 +280,7 @@ function ToDo() {
         pinned: false,
       };
       setTasks((prev) => [...prev, taskObject]);
-      setNewTask({ id: 0, hour: "", task: "", pinned: false });
+      setNewTask({ id: "", hour: "", task: "", pinned: false });
     } else {
       // Aviso caso o usuário escreva apenas espaços ou não escreva nada na área de adicionar uma nova tarefa
       alert("Por favor, escreva um valor válido!");
@@ -282,18 +299,33 @@ function ToDo() {
 
   // Função para excluir uma tarefa de dentro da Array tasks realizando um filtro com o index
   const deleteTask = (index: number) => {
-    const tasksDeleted = tasks[index];
-    setDeletedTasks((prev) => [...prev, tasksDeleted]);
-    const updatedTasks = tasks.filter((_, i) => i !== index);
-    setTasks(updatedTasks);
+    if (index >= 0 && index < tasks.length) {
+      const tasksDeleted = tasks[index];
+      setDeletedTasks((prev) => [...prev, tasksDeleted]);
+      const updatedTasks = tasks.filter((_, i) => i !== index);
+      setTasks(updatedTasks);
+    } else {
+      console.error("Invalid index for deleting task");
+    }
   };
 
   // Função para restaurar as tarefas que foram excluídas
   const restoreTask = (index: number) => {
-    const restoredTasks = deletedTasks[index];
-    setTasks((prev) => [...prev, restoredTasks]);
-    const updatedDeletedTasks = deletedTasks.filter((_, i) => i !== index);
-    setDeletedTasks(updatedDeletedTasks);
+    if (index >= 0 && index < deletedTasks.length) {
+      const restoredTask = deletedTasks[index];
+      const updatedDeletedTasks = deletedTasks.filter((_, i) => i !== index);
+      setDeletedTasks(updatedDeletedTasks);
+      setTasks((prev) => [...prev, restoredTask]);
+    } else {
+      console.error("Invalid index for restoring task");
+    }
+  };
+
+  // Função para excluir permanentemente uma tarefa
+  const deleteBinTask = (index: number) => {
+    setDeletedTasks((prevDeletedTasks) =>
+      prevDeletedTasks.filter((_, i) => i !== index)
+    );
   };
 
   // Função para mover a tarefa para cima, realizando a inversão do index, também checa se a tarefa já não é a primeira ou última
@@ -318,6 +350,65 @@ function ToDo() {
       ];
       setTasks(updatedTasks);
     }
+  };
+
+  // Função para excluir todas as tasks que foram selecionadas pelo usuário
+  const deleteSelectedTasks = () => {
+    // Filtra todas as tasks selecionadas pelo usuário
+    const updatedTasks = tasks.filter(
+      (task) => !selectedTasks.includes(task.id)
+    );
+    // Atualiza o estado atual das tasks
+    setTasks(updatedTasks);
+    // Move as tasks excluídas para a array de items excluídos
+    const updatedDeletedTasks = [
+      ...deletedTasks,
+      ...tasks.filter((task) => selectedTasks.includes(task.id)),
+    ];
+    setDeletedTasks(updatedDeletedTasks);
+    // Limpa a array de tasks selecionadas
+    setSelectedTasks([]);
+  };
+
+  // Função para excluir todas as tasks que foram selecionadas pelo usuário na lixeira
+  const deleteSelectedBinTasks = () => {
+    // Filtra todas as tasks selecionadas pelo usuário
+    const updatedDeletedTasks = deletedTasks.filter(
+      (task) => !selectedTasks.includes(task.id)
+    );
+    // Atualiza o estado atual da array deletedTasks
+    setDeletedTasks(updatedDeletedTasks);
+    // Limpa a array de tasks selecionadas
+    setSelectedTasks([]);
+  };
+
+  const restoreSelectedBinTasks = () => {
+    // Filtra todas as tasks selecionadas pelo usuário
+    const restoredTasks = deletedTasks.filter((task) =>
+      selectedTasks.includes(task.id)
+    );
+    // Atuliza a array das tasks adicionando as tasks que foram restauradas
+    setTasks((prevTasks) => [...prevTasks, ...restoredTasks]);
+    // Atualiza a array deletedTasks removendo as tasks restauradas
+    setDeletedTasks((prevDeletedTasks) =>
+      prevDeletedTasks.filter((task) => !selectedTasks.includes(task.id))
+    );
+    // Limpa a array de tasks selecionadas
+    setSelectedTasks([]);
+  };
+
+  // Função para fixar todas as tasks que foram selecionadas pelo usuário
+  const pinSelectedTasks = () => {
+    // Faz um loop em todas as tasks e atualiza o valor pinned para true caso esteja selecionada
+    const updatedTasks = tasks.map((task) => {
+      if (selectedTasks.includes(task.id)) {
+        return { ...task, pinned: true };
+      }
+      return task;
+    });
+    setTasks(updatedTasks);
+    // Limpa a array de tasks selecionadas
+    setSelectedTasks([]);
   };
 
   return (
@@ -373,6 +464,29 @@ function ToDo() {
             ></AddTask>
             <AddTaskButton onClick={addTask}>Adicionar</AddTaskButton>
           </AddTaskWrapper>
+          {selectedTasks.length > 0 && (
+            <>
+              {activeButton === 3 ? (
+                <SelectedTasksOptions>
+                  <button onClick={restoreSelectedBinTasks}>
+                    {selectedTasks.length > 1 ? "Restore All" : "Restore"}
+                  </button>
+                  <button onClick={deleteSelectedBinTasks}>
+                    {selectedTasks.length > 1 ? "Delete All" : "Delete"}
+                  </button>
+                </SelectedTasksOptions>
+              ) : (
+                <SelectedTasksOptions>
+                  <button onClick={pinSelectedTasks}>
+                    {selectedTasks.length > 1 ? "Pin All" : "Pin"}
+                  </button>
+                  <button onClick={deleteSelectedTasks}>
+                    {selectedTasks.length > 1 ? "Delete All" : "Delete"}
+                  </button>
+                </SelectedTasksOptions>
+              )}
+            </>
+          )}
           {activeButton === 1 ? (
             <>
               <TaskWrapper>
@@ -389,6 +503,7 @@ function ToDo() {
                             <Tasks key={index}>
                               <input
                                 type="checkbox"
+                                title="Selecionar"
                                 checked={selectedTasks.includes(task.id)}
                                 onChange={() => handleCheckEvent(task.id)}
                               ></input>
@@ -396,17 +511,27 @@ function ToDo() {
                                 $isSelected={selectedTasks.includes(task.id)}
                               >
                                 <TaskButtons>
-                                  <TaskOption onClick={() => pinTask(task)}>
+                                  <TaskOption
+                                    onClick={() => pinTask(task)}
+                                    title="Desafixar"
+                                  >
                                     <TbPinnedOff></TbPinnedOff>
                                   </TaskOption>
-                                  <TaskOption onClick={() => deleteTask(index)}>
+                                  <TaskOption
+                                    onClick={() => deleteTask(index)}
+                                    title="Excluir"
+                                  >
                                     <MdDelete></MdDelete>
                                   </TaskOption>
-                                  <TaskOption onClick={() => moveTaskUp(index)}>
+                                  <TaskOption
+                                    onClick={() => moveTaskUp(index)}
+                                    title="Mover para cima"
+                                  >
                                     <FaArrowUp></FaArrowUp>
                                   </TaskOption>
                                   <TaskOption
                                     onClick={() => moveTaskDown(index)}
+                                    title="Mover para baixo"
                                   >
                                     <FaArrowDown></FaArrowDown>
                                   </TaskOption>
@@ -435,9 +560,10 @@ function ToDo() {
                       .map(
                         (task, index) =>
                           !task.pinned && (
-                            <Tasks key={index}>
+                            <Tasks key={task.id}>
                               <input
                                 type="checkbox"
+                                title="Selecionar"
                                 checked={selectedTasks.includes(task.id)}
                                 onChange={() => handleCheckEvent(task.id)}
                               ></input>
@@ -445,17 +571,27 @@ function ToDo() {
                                 $isSelected={selectedTasks.includes(task.id)}
                               >
                                 <TaskButtons>
-                                  <TaskOption onClick={() => pinTask(task)}>
+                                  <TaskOption
+                                    onClick={() => pinTask(task)}
+                                    title="fixar"
+                                  >
                                     <TbPinned></TbPinned>
                                   </TaskOption>
-                                  <TaskOption onClick={() => deleteTask(index)}>
+                                  <TaskOption
+                                    onClick={() => deleteTask(index)}
+                                    title="Excluir"
+                                  >
                                     <MdDelete></MdDelete>
                                   </TaskOption>
-                                  <TaskOption onClick={() => moveTaskUp(index)}>
+                                  <TaskOption
+                                    onClick={() => moveTaskUp(index)}
+                                    title="Mover para cima"
+                                  >
                                     <FaArrowUp></FaArrowUp>
                                   </TaskOption>
                                   <TaskOption
                                     onClick={() => moveTaskDown(index)}
+                                    title="Mover para baixo"
                                   >
                                     <FaArrowDown></FaArrowDown>
                                   </TaskOption>
@@ -487,21 +623,34 @@ function ToDo() {
                           <Tasks key={task.id}>
                             <input
                               type="checkbox"
+                              title="Selecionar"
                               checked={selectedTasks.includes(task.id)}
                               onChange={() => handleCheckEvent(task.id)}
                             ></input>
                             <Task $isSelected={selectedTasks.includes(task.id)}>
                               <TaskButtons>
-                                <TaskOption onClick={() => pinTask(task)}>
+                                <TaskOption
+                                  onClick={() => pinTask(task)}
+                                  title="Fixar"
+                                >
                                   <TbPinnedOff></TbPinnedOff>
                                 </TaskOption>
-                                <TaskOption onClick={() => deleteTask(index)}>
+                                <TaskOption
+                                  onClick={() => deleteTask(index)}
+                                  title="Excluir"
+                                >
                                   <MdDelete></MdDelete>
                                 </TaskOption>
-                                <TaskOption onClick={() => moveTaskUp(index)}>
+                                <TaskOption
+                                  onClick={() => moveTaskUp(index)}
+                                  title="Mover para cima"
+                                >
                                   <FaArrowUp></FaArrowUp>
                                 </TaskOption>
-                                <TaskOption onClick={() => moveTaskDown(index)}>
+                                <TaskOption
+                                  onClick={() => moveTaskDown(index)}
+                                  title="Mover para baixo"
+                                >
                                   <FaArrowDown></FaArrowDown>
                                 </TaskOption>
                               </TaskButtons>
@@ -529,13 +678,23 @@ function ToDo() {
                       <Tasks key={task.id}>
                         <input
                           type="checkbox"
+                          title="Selecionar"
                           checked={selectedTasks.includes(task.id)}
                           onChange={() => handleCheckEvent(task.id)}
                         ></input>
                         <Task $isSelected={selectedTasks.includes(task.id)}>
                           <TaskButtons>
-                            <TaskOption onClick={() => restoreTask(index)}>
+                            <TaskOption
+                              onClick={() => restoreTask(index)}
+                              title="Restaurar"
+                            >
                               <MdRestoreFromTrash></MdRestoreFromTrash>
+                            </TaskOption>
+                            <TaskOption
+                              onClick={() => deleteBinTask(index)}
+                              title="Excluir permanentemente"
+                            >
+                              <MdDelete></MdDelete>
                             </TaskOption>
                           </TaskButtons>
                           <TaskText>{task.task}</TaskText>
