@@ -1,14 +1,12 @@
-# To Do List
+# To-Do List
 
-É um projeto onde o usuário pode adicionar as suas tarefas a fazer
+It's a project where the user can put tasks on a to-do list
 
+## Functionalities
 
-## Funcionalidades
-
-- Pesquisar tarefas
-- Mover as tarefas de acordo com a sua preferência
-- Fixar e desafixar tarefas
-- Excluir tarefas
-- Três diferentes abas, sendo, todas as tarefas, tarefas fixadas e uma lixeira
-- Contém responsividade com outros dispositivos
-
+- Search tasks
+- Move tasks
+- Pin and unpin tasks
+- Delete tasks
+- Three different tabs, being all tasks, pinned tasks and a bin
+- Responsive with different devices
